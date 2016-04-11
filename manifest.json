@@ -4,7 +4,7 @@
   "version": "1.4",
   "author": "William Wagner",
   "description": "Decide which classes to take more efficiently at FSU by having
-  professors ratings from RateMyProfessor.com displayed directly on the course results page.",
+  professors ratings from RateMyProfessor.com displayed directly on student central.",
 
     "icons": { "16": "icon.png", "48": "icon.png", "128": "icon.png" },
 
@@ -12,15 +12,20 @@
       "default_icon": "icon.png",
       "default_popup": "popup.html"
     },
-
   "permissions": [
-      "tabs",
-      "https://ajax.googleapis.com/",
-      "http://www.ratemyprofessors.com/*"
+    "tabs"
   ],
-
   "background": {
-      "scripts": ["background.js"],
+      "scripts": [ "background.js"],
       "persistent": false
+    },
+
+  "content_scripts": [
+    {
+      "matches": ["http://campus.omni.fsu.edu/*", "https://campus.omni.fsu.edu/*"],
+      "all_frames": true,
+      "js": [ "jquery-1.12.0.js", "main.js" ]
     }
+
+  ]
 }
