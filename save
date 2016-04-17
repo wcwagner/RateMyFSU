@@ -1,0 +1,37 @@
+function requestId(ProfObj, profName, sendresponse){
+	var queryUrl = queryBaseUrl + profName + "&facetSearch=true";
+	var tidXHR = new XMLHttpRequest();
+	tidXHR.open("GET", queryUrl, true);
+	tidXHR.send();
+	tidXHR.onreadystatechange = function(){
+		var retObj = {};
+		if( tidXHR.readyState == 4 && tidXHR.status == 200){
+			console.log("Success");
+			// Turn XMLHttpresponse into jQuery dom object
+			var $responseDOM = $($.parseHTML(tidXHR.response));
+			var teacherHref = $responseDOM.find('li[class="listing PROFESSOR"] a').attr('href');
+			//grab teacher id from href
+			if(teacherHref){
+				var profPageUrl = "http://ratemyprofessors.com" + teacherHref;
+				var ratingXHR = new XMLHttpRequest();
+				ratingXHR.open("GET", profPageUrl, true);
+				ratingXHR.send();
+				ratingXHR.onreadystatechange = function(){
+					if( ratingXHR.readyState == 4 && ratingXHR.status == 200){
+						$ratingDOM = $($.parseHTML(ratingXHR.response));
+						var rating = $ratingDOM.find('div[class="grade"]').text();
+						ProfObj[profName][0] = rating.match(/[0-9].[0-9][A-z]/)[0];
+						retObj[profName] = rating.match(/[0-9].[0-9][A-z]/)[0];
+						return retObj;
+						/*if(rating){
+							ProfObj[profName][0] = rating.match(/[0-9].[0-9][A-z]/)[0];
+						}
+						else{
+							ProfObj[profName][0] = "N/A";
+						}*/
+					}
+				};
+			}
+		}
+	};
+}

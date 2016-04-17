@@ -1,5 +1,6 @@
 var targetNode = document;
 var timeOut = null;
+var port = chrome.runtime.connect({name: "getProfessors"});
 function delayedListener(){
 	timeOut = window.setTimeout(checkForSearchResultsPage, 500);
 	//console.log("Started delayedListener " + timeOut);
@@ -12,14 +13,6 @@ function cancelListener(){
 function checkForSearchResultsPage(){
 	if(document.getElementById("MTG_INSTR$0"))
 		grabProfessors();
-	/*var checkForProfessor;
-	 try{
-	 	checkForProfessor = document.getElementById("MTG_INSTR$0").innerHTML;
-	 }
-	 catch(professorNotFound){}
-	 if(checkForProfessor !== undefined){
-	 		grabProfessors();
-	 }*/
 }
 
 function grabProfessors(){
@@ -27,37 +20,64 @@ function grabProfessors(){
 	var count = 0;
 	var currProfId = "MTG_INSTR$" + count;
 	var currProfName = "";
-	var Professors = [];
 	var ProfObj = {};
 	do{
 
 		currProfId = "MTG_INSTR$" + count;
 		currProfElem = document.getElementById(currProfId);
 		if( currProfElem){
-			currProfName = currProfElem.innerHTML;
-			currProfName = currProfName.match(regex);
+			currProfName = currProfElem.innerHTML.match(regex);
+			//no entry for the current professor
 			if(!ProfObj[currProfName]){
-				console.log("Adding " + currProfName + " to object");
 				ProfObj[currProfName] = [];
+				//reserved space for rating and profUrl, respectively
 				ProfObj[currProfName][0] = "";
+				ProfObj[currProfName][1]  = "";
 			}
+			//keep track of all the id's that a professor is associated with on page
 			ProfObj[currProfName].push(currProfId);
-			Professors.push(currProfName);
 		}
 		count++;
 	}while(currProfElem !== null);
-	console.log(ProfObj);
-	for(var key in ProfObj)
+	//ajax requests to get info from ratemyprofessor
 	getProfessorRatings(ProfObj);
 }
 
-function getProfessorRatings(profArray){
-	chrome.runtime.sendMessage(ProfObj, function(response){
-		//console.log(response.farewell);
-	});
-
+function getProfessorRatings(ProfObj){
+	//Only want to send one professor in each object
+	for(var prof in ProfObj){
+		var obj = {};
+		obj[prof] = ProfObj[prof];
+		port.postMessage(obj);
+	}
 }
 
+port.onMessage.addListener(function(message){
+	addRatingToDom(message);
+});
+function addRatingToDom( profObj){
+	var profName = Object.keys(profObj)[0];
+	var rating = profObj[profName][0];
+	var profArray = profObj[profName];
+	if(rating !== null){
+		console.log(rating + " " + profArray[1]);
+		var elem = "<p>" + rating + "</p>";
+		var profUrl = "<a target='_blank'href='" + profArray[1] + "'>Ratings Page</a>";
+		for(var i = 2; i < profArray.length; i++){
+			var id = profArray[i];
+			$(document.getElementById(id)).append(elem);
+			$(document.getElementById(id)).append(profUrl);
+		}
+	}
+	else{
+		console.log("MAKING NULL" + rating);
+		var noData = "<p>No data available</p>";
+		for(var i = 2; i < profArray.length; i++){
+			var id = profArray[i];
+			$(document.getElementById(id)).append(noData);
+		}
+	}
+}
 var observer = new MutationObserver(function(mutations){
 	mutations.forEach(function(mutation){
 		//The target that is affected when the class search page is reached

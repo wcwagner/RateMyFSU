@@ -14,38 +14,54 @@ function checkForValidUrl(tabId, changeInfo, tab) {
 var queryBaseUrl = "http://www.ratemyprofessors.com/search.jsp?queryBy=teacherName"+
 								"&schoolName=florida%20state%20university&queryoption=HEADER"+
 								"&query=";
-chrome.runtime.onMessage.addListener(
-	function(request, sender, sendResponse){
-		if(request.profNames.length > 0){
-			request.profNames.forEach(function(prof){
-				var queryUrl = queryBaseUrl + prof + "&facetSearch=true";
-				console.log(queryUrl);
-			});
-		}
-		sendResponse({farewell: "goodbye"});
-	});
-var url = "http://www.ratemyprofessors.com/search.jsp?queryBy=teacherName&schoolName=florida%20state%20university&queryoption=HEADER&query=xiuwen%20liu&facetSearch=true";
-var xhr = new XMLHttpRequest();
-xhr.open("GET", url, true);
-xhr.send();
-xhr.onreadystatechange = function(){
-	if( xhr.readyState == 4 && xhr.status == 200){
-		console.log("Success");
-		// Turn XMLHttpresponse into jQuery dom object
-		var $responseDOM = $($.parseHTML(xhr.response));
-		var teacherHref = $responseDOM.find('li[class="listing PROFESSOR"] a').attr('href');
-		//grab teacher id from href
-		var profPageUrl = "http://ratemyprofessors.com" + teacherHref;
-		console.log(profPageUrl);
-		/*var ratingXHR = new XMLHttpRequest();
-		ratingXHR.open(GET)
-		ratingXHR.send();
-		ratingXHR.onreadystatechange = function(){
-			if( ratingXHR.readyState == 4 && ratingXHR.status == 200){
-				$ratingDOM = $($.parseHTML(ratingXHR.response));
-				var rating = $ratingDOM.find('div[class="grade"]').text();
-			}
-		};*/
-	}
-};
 
+
+chrome.runtime.onConnect.addListener(function(port) {
+	port.onMessage.addListener(function(msg){
+		var profName = Object.keys(msg)[0];
+		var queryUrl = queryBaseUrl + profName + "&facetSearch=true";
+		$.ajax({
+			url: queryUrl,
+			success: function(htmlStr){
+			// Turn XMLHttpresponse into jQuery dom object
+				var $responseDOM = $($.parseHTML(htmlStr));
+				var teacherHref = $responseDOM.find('li[class="listing PROFESSOR"] a').attr('href');
+				if(teacherHref){
+					var profPageUrl = "http://ratemyprofessors.com" + teacherHref;
+					$.ajax({
+						url: profPageUrl,
+						success: function(profPageHtml){
+							$ratingDOM = $($.parseHTML(profPageHtml));
+							var rating = $ratingDOM.find('div[class="grade"]').text();
+							rating = editRatingText(rating);
+							msg[profName][0] = rating;
+							msg[profName][1] = profPageUrl;
+							port.postMessage(msg);
+						},
+						error: function(XMLHttpRequest, textStatus, errorThrow){
+
+						}
+					});
+				}
+				else{
+					msg[profName][0] = null;
+					port.postMessage(msg);
+				}
+				//grab teacher id from href
+
+			},
+			error: function(XMLHttpRequest, textStatus, errorThrow){
+
+			}
+
+		});
+	});
+});
+function editRatingText(rating){
+	var ratingStr = rating.match(/[0-9].[0-9][A-z]\/?[A-z]?/)[0];
+	test = ratingStr.slice(0,3) +  " " +  ratingStr.slice(3);
+	console.log(test);
+	return test;
+
+}
+chrome.tabs.onUpdated.addListener(checkForValidUrl);
