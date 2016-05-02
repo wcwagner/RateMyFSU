@@ -26,7 +26,7 @@ chrome.runtime.onConnect.addListener(function(port) {
 			// Turn XMLHttpresponse into jQuery dom object
 				var $responseDOM = $($.parseHTML(htmlStr));
 				var teacherHref = $responseDOM.find('li[class="listing PROFESSOR"] a').attr('href');
-				if(teacherHref){
+				if(teacherHref && profName !== "Staff"){
 					var profPageUrl = "http://ratemyprofessors.com" + teacherHref;
 					$.ajax({
 						url: profPageUrl,

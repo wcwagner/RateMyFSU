@@ -16,7 +16,7 @@ function checkForSearchResultsPage(){
 }
 
 function grabProfessors(){
-	var regex = /[A-z]+\ [A-z]+/;
+	var regex = /[A-z]+\ ?[A-z]+/;
 	var count = 0;
 	var currProfId = "MTG_INSTR$" + count;
 	var currProfName = "";
@@ -46,15 +46,16 @@ function grabProfessors(){
 function getProfessorRatings(ProfObj){
 	//Only want to send one professor in each object
 	for(var prof in ProfObj){
-		var obj = {};
-		obj[prof] = ProfObj[prof];
-		port.postMessage(obj);
+		var msg = {};
+		msg[prof] = ProfObj[prof];
+		port.postMessage(msg);
 	}
 }
 
 port.onMessage.addListener(function(message){
 	addRatingToDom(message);
 });
+
 function addRatingToDom( profObj){
 	var profName = Object.keys(profObj)[0];
 	var rating = profObj[profName][0];
@@ -70,7 +71,6 @@ function addRatingToDom( profObj){
 		}
 	}
 	else{
-		console.log("MAKING NULL" + rating);
 		var noData = "<p>No data available</p>";
 		for(var i = 2; i < profArray.length; i++){
 			var id = profArray[i];
@@ -78,6 +78,7 @@ function addRatingToDom( profObj){
 		}
 	}
 }
+
 var observer = new MutationObserver(function(mutations){
 	mutations.forEach(function(mutation){
 		//The target that is affected when the class search page is reached
