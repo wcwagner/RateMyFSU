@@ -58,15 +58,18 @@ port.onMessage.addListener(function(message){
 
 function addRatingToDom( profObj){
 	var profName = Object.keys(profObj)[0];
-	var rating = profObj[profName][0];
+	var OverallRating = profObj[profName][0][0];
+	var DifficultyRating = profObj[profName][0][1];
 	var profArray = profObj[profName];
-	if(rating !== null){
-		console.log(rating + " " + profArray[1]);
-		var elem = "<p>" + rating + "</p>";
+	console.log(profName, OverallRating, DifficultyRating);
+	if(OverallRating !== null){
+		var overallElem = "<p><span style='font-weight:bold'>Rating: </span>" + OverallRating + "</p>";
+		var difficultyElem = "<p><span style='font-weight:bold'>Difficulty: </span>" + DifficultyRating + "</p>";
 		var profUrl = "<a target='_blank'href='" + profArray[1] + "'>Ratings Page</a>";
 		for(var i = 2; i < profArray.length; i++){
 			var id = profArray[i];
-			$(document.getElementById(id)).append(elem);
+			$(document.getElementById(id)).append(overallElem);
+			$(document.getElementById(id)).append(difficultyElem);
 			$(document.getElementById(id)).append(profUrl);
 		}
 	}
@@ -95,3 +98,4 @@ var config = {
 };
 
 observer.observe(targetNode, config);
+

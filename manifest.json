@@ -17,7 +17,8 @@
     "http://*/*",
     "https://*/*",
     "http://*/",
-    "*://www.ratemyprofessors.com/*"
+    "*://www.ratemyprofessors.com/*",
+    "storage"
   ],
   "background": {
       "scripts": [ "jquery-1.12.0.js","background.js"],

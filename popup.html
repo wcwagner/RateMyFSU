@@ -10,15 +10,20 @@
     <style>
       body {
         font-family: Verdana,Arial,sans-serif;
-        font-size: 100%;
+        font-size: 75%;
         font-weight: bold;
+        color: rgb(74,89,140);
       }
-      #status {
-        /* avoid an excessively wide status text */
-        white-space: pre;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        max-width: 400px;
+      .container{
+        width: 20em;
+        height: auto;
+      }
+      table{
+        margin: 0 auto;
+        width: 100%;
+      }
+      th{
+        background-color: #DAE2EE;
       }
     </style>
 
@@ -31,8 +36,6 @@
     <script src="popup.js"></script>
   </head>
   <body>
-    <div id="status"></div>
-    <img id="image-result" hidden>
   </body>
 </html>
 

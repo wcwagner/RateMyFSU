@@ -7,7 +7,7 @@ function checkForValidUrl(tabId, changeInfo, tab) {
 // If the tabs url starts with "http://specificsite.com"...
 	if(tab.url.indexOf(urlMatch) != -1){
 		console.log(tab.url);
-	chrome.pageAction.show(tabId);
+		chrome.pageAction.show(tabId);
 	}
 	// ... show the page action.
 }
@@ -33,8 +33,9 @@ chrome.runtime.onConnect.addListener(function(port) {
 						success: function(profPageHtml){
 							$ratingDOM = $($.parseHTML(profPageHtml));
 							var rating = $ratingDOM.find('div[class="grade"]').text();
-							rating = editRatingText(rating);
-							msg[profName][0] = rating;
+							var ratings = editRatingText(rating);
+							console.log(ratings)
+							msg[profName][0] = ratings;
 							msg[profName][1] = profPageUrl;
 							port.postMessage(msg);
 						},
@@ -58,10 +59,10 @@ chrome.runtime.onConnect.addListener(function(port) {
 	});
 });
 function editRatingText(rating){
-	var ratingStr = rating.match(/[0-9].[0-9][A-z]\/?[A-z]?/)[0];
-	test = ratingStr.slice(0,3) +  " " +  ratingStr.slice(3);
-	console.log(test);
-	return test;
+	var ratings_arr = rating.match(/[0-9].[0-9][A-z]?\/?[A-z]?/g);
+	var overallRating = ratings_arr[0];
+	var difficultyRating = ratings_arr[1];
+	return [overallRating, difficultyRating];
 
 }
 chrome.tabs.onUpdated.addListener(checkForValidUrl);
