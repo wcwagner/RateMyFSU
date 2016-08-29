@@ -1,35 +1,30 @@
 {
   "manifest_version": 2,
   "name": "RateMyFSU",
-  "version": "1.4",
+  "version": "0.0.0.1",
   "author": "William Wagner",
   "description": "Decide which classes to take more efficiently at FSU by having
-  professors ratings from RateMyProfessor.com displayed directly on student central.",
+  professors ratings from RateMyProfessor.com displayed directly on the class search page.",
 
-    "icons": { "16": "icon.png", "48": "icon.png", "128": "icon.png" },
-
-    "page_action": {
-      "default_icon": "icon.png",
-      "default_popup": "popup.html"
-    },
+  "icons": { "16": "icon.png", "48": "icon.png", "128": "icon.png" },
+  "browser_action": {
+    "default_icon": "icon.png"
+  },
   "permissions": [
-    "tabs",
-    "http://*/*",
-    "https://*/*",
-    "http://*/",
-    "*://www.ratemyprofessors.com/*",
-    "storage"
+    "http://ratemyprofessors.com/*",
+    "https://ratemyprofessors.com/*"
   ],
   "background": {
-      "scripts": [ "jquery-1.12.0.js","background.js"],
-      "persistent": false
+      "scripts": ["background.js"],
+      "persistent": true
     },
 
   "content_scripts": [
     {
-      "matches": ["http://campus.omni.fsu.edu/*", "https://campus.omni.fsu.edu/*"],
-      "all_frames": true,
-      "js": [ "jquery-1.12.0.js", "main.js" ]
+      "matches": ["*://campus.omni.fsu.edu/*"],
+      "js": [ "jquery-1.12.0.js", 
+              "main.js" ],
+      "all_frames": true
     }
 
   ]

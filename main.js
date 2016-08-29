@@ -1,12 +1,9 @@
-var targetNode = document;
 var timeOut = null;
 var port = chrome.runtime.connect({name: "getProfessors"});
 function delayedListener(){
 	timeOut = window.setTimeout(checkForSearchResultsPage, 500);
-	//console.log("Started delayedListener " + timeOut);
 }
 function cancelListener(){
-	//console.log("Cancelling delayedListener " + timeOut);
 	window.clearTimeout(timeOut);
 
 }
@@ -15,70 +12,113 @@ function checkForSearchResultsPage(){
 		grabProfessors();
 }
 
+
+
 function grabProfessors(){
-	var regex = /[A-z]+\ ?[A-z]+/;
+	var profToIds = {};
+	var getNameRegex = /[A-z]+\ ?[A-z]+/;
 	var count = 0;
 	var currProfId = "MTG_INSTR$" + count;
 	var currProfName = "";
-	var ProfObj = {};
 	do{
-
 		currProfId = "MTG_INSTR$" + count;
 		currProfElem = document.getElementById(currProfId);
 		if( currProfElem){
-			currProfName = currProfElem.innerHTML.match(regex);
+			currProfName = currProfElem.innerHTML.match(getNameRegex);
 			//no entry for the current professor
-			if(!ProfObj[currProfName]){
-				ProfObj[currProfName] = [];
-				//reserved space for rating and profUrl, respectively
-				ProfObj[currProfName][0] = "";
-				ProfObj[currProfName][1]  = "";
+			if(!profToIds[currProfName]){
+				profToIds[currProfName] = []
 			}
 			//keep track of all the id's that a professor is associated with on page
-			ProfObj[currProfName].push(currProfId);
+			profToIds[currProfName].push(currProfId);
 		}
 		count++;
 	}while(currProfElem !== null);
 	//ajax requests to get info from ratemyprofessor
-	getProfessorRatings(ProfObj);
+	getProfessorSearchPage(profToIds);
 }
 
-function getProfessorRatings(ProfObj){
-	//Only want to send one professor in each object
-	for(var prof in ProfObj){
-		var msg = {};
-		msg[prof] = ProfObj[prof];
-		port.postMessage(msg);
+function getProfessorSearchPage(profToIds){
+	var queryBaseUrl = "http://www.ratemyprofessors.com/search.jsp?queryBy=teacherName"+
+								"&schoolName=florida%20state%20university&queryoption=HEADER"+
+								"&query=";
+	for(var profName in profToIds){
+		var requestUrl = queryBaseUrl + profName + "&facetSearch=true";
+		chrome.runtime.sendMessage({
+			url: requestUrl,
+			method: "POST",
+			action: "xhttp",
+			name: profName,
+			ids: profToIds[profName]
+		},
+			//the callback
+			function(response){
+				var $responseDOM = $($.parseHTML(response.htmlStr));
+				var teacherHref = $responseDOM.find('li[class="listing PROFESSOR"] a').attr('href');
+				var ratingPageUrl = null
+				if(teacherHref && profName !== "Staff"){
+					ratingPageUrl = "http://ratemyprofessors.com" + teacherHref;
+					getProfessorRatings(ratingPageUrl, response.name, response.ids)
+				}
+				else{
+					addNoRatingToDom(response.profName, response.ids)
+				}
+			}
+		);
 	}
 }
-
-port.onMessage.addListener(function(message){
-	addRatingToDom(message);
-});
-
-function addRatingToDom( profObj){
-	var profName = Object.keys(profObj)[0];
-	var OverallRating = profObj[profName][0][0];
-	var DifficultyRating = profObj[profName][0][1];
-	var profArray = profObj[profName];
-	console.log(profName, OverallRating, DifficultyRating);
-	if(OverallRating !== null){
-		var overallElem = "<p><span style='font-weight:bold'>Rating: </span>" + OverallRating + "</p>";
-		var difficultyElem = "<p><span style='font-weight:bold'>Difficulty: </span>" + DifficultyRating + "</p>";
-		var profUrl = "<a target='_blank'href='" + profArray[1] + "'>Ratings Page</a>";
-		for(var i = 2; i < profArray.length; i++){
-			var id = profArray[i];
-			$(document.getElementById(id)).append(overallElem);
-			$(document.getElementById(id)).append(difficultyElem);
-			$(document.getElementById(id)).append(profUrl);
-		}
+function getProfessorRatings(ratingPageUrl, profName, profIds){
+	if(ratingPageUrl){
+		chrome.runtime.sendMessage({
+			url: ratingPageUrl,
+			method: "POST",
+			action: "xhttp",
+			name: profName,
+			ids: profIds
+		},
+			function(response){
+				$ratingDOM = $($.parseHTML(response.htmlStr));
+				var ratingStr = $ratingDOM.find('div[class="grade"]').text();
+				var ratings = extractRatingsFromStr(ratingStr);
+				addRatingToDom(response.name, response.ids, ratings, ratingPageUrl)
+			});
 	}
+}
+function extractRatingsFromStr(ratingStr){
+	var ratings_arr = ratingStr.match(/[0-9].[0-9][A-z]?\/?[A-z]?/g);
+	var overallRating = ratings_arr[0];
+	var difficultyRating = ratings_arr[1];
+	return [overallRating, difficultyRating];
+
+}
+
+function addRatingToDom(profName, ids, ratings, ratingPageUrl){
+
+	var overallRating = ratings[0];
+	var difficultyRating = ratings[1];
+	if(overallRating && overallRating !== "0.0")
+		var overallElem = "<p><span style='font-weight:bold'>Rating: </span>" + overallRating + "</p>";
 	else{
-		var noData = "<p>No data available</p>";
-		for(var i = 2; i < profArray.length; i++){
-			var id = profArray[i];
-			$(document.getElementById(id)).append(noData);
-		}
+		console.log(profName, overallRating)
+		var overallElem = "<p><span style='font-weight:bold'>Rating: </span>N/A</p>"}
+
+	if(difficultyRating && difficultyRating !== "0.0")
+		var difficultyElem = "<p><span style='font-weight:bold'>Difficulty: </span>" + difficultyRating + "</p>";
+	else{
+		console.log(profName, difficultyRating)
+		var difficultyElem = "<p><span style='font-weight:bold'>Difficulty: </span>N/A</p>";
+	}
+	var profUrlElem = "<a target='_blank'href='" + ratingPageUrl + "'>Ratings Page</a>";
+	for(var i = 0; i < ids.length; i++){
+		$(document.getElementById(ids[i])).append(overallElem);
+		$(document.getElementById(ids[i])).append(difficultyElem);
+		$(document.getElementById(ids[i])).append(profUrlElem);
+	}
+}
+function addNoRatingToDom(profName, ids){
+	var noDataElem = "<p>No data available</p>";
+	for(var i = 0; i < ids.length; i++){
+		$(document.getElementById(ids[i])).append(noDataElem);
 	}
 }
 
@@ -96,6 +136,7 @@ var config = {
 	subtree: true,
 	childList: true,
 };
+var targetNode = document;
 
 observer.observe(targetNode, config);
 
